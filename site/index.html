@@ -146,6 +146,11 @@ const CATEGORY_ICON = {
 // dataset (far south Hwy 69 S, far north Northport, far east Skyland Blvd)
 // with a small pad — the screenshot framing alone would cut 6 pins off.
 const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
+// Default view: the core area holding 63 of 64 pins. The one outlier
+// (Domino's, 7402 Highway 69 S — currently unavailable) sits ~2 miles south
+// of every other pin and stretched the opening view; it stays on the map
+// and in the list, and selecting it still flies there within the pan bounds.
+const CORE_BOUNDS = L.latLngBounds([33.156,-87.583],[33.245,-87.488]);
 
 let LOCATIONS=[], markers=new Map();
 let state={pay:"all", cat:"all", hideUnavail:false, q:""};
@@ -237,9 +242,8 @@ fetch("locations.json").then(r=>r.json()).then(data=>{
     m.on("click",()=>showDetail(p));
     markers.set(p.id,m);
   }
-  const pinBounds=L.latLngBounds(LOCATIONS.map(p=>[p.lat,p.lng]));
-  map.fitBounds(pinBounds.pad(0.06));
-  document.getElementById("resetView").onclick=()=>map.fitBounds(pinBounds.pad(0.06));
+  map.fitBounds(CORE_BOUNDS);
+  document.getElementById("resetView").onclick=()=>map.fitBounds(CORE_BOUNDS);
   const biz=new Set(LOCATIONS.map(p=>p.name)).size;
   document.getElementById("headerStats").textContent =
     `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars (Both) · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
