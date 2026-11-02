@@ -21,7 +21,7 @@
   h2.sec:first-child{margin-top:0}
   input[type=search]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
   .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .seg button{flex:1;padding:9px 4px;font-size:12.5px;background:#fff;border:0;border-right:1px solid var(--line);cursor:pointer;line-height:1.25}
+  .seg button{flex:1;padding:9px 2px;font-size:11.5px;background:#fff;border:0;border-right:1px solid var(--line);cursor:pointer;line-height:1.25}
   .seg button:last-child{border-right:0}
   .seg button.active{background:var(--crimson);color:#fff;font-weight:600}
   .seg-note{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
@@ -89,10 +89,11 @@
     <h2 class="sec">Payment type</h2>
     <div class="seg" id="paySeg">
       <button data-pay="all" class="active">All</button>
+      <button data-pay="diningOnly">Dining Dollars only</button>
       <button data-pay="bamaOnly">Bama Cash only</button>
       <button data-pay="both">Both</button>
     </div>
-    <div class="seg-note">“Both” = accepts Dining Dollars <i>and</i> Bama Cash. Every Dining Dollars location also accepts Bama Cash — there are no Dining-Dollars-only locations.</div>
+    <div class="seg-note">Each location's tag is Dining Dollars only, Bama Cash only, or Both. Heads-up: in UA's current listings every Dining Dollars location also accepts Bama Cash, so “Dining Dollars only” currently matches 0 locations — those places are all under Both.</div>
 
     <h2 class="sec">Location type</h2>
     <div class="chips" id="catChips"></div>
@@ -189,6 +190,7 @@ function showDetail(p){
   document.getElementById("closeDetail").onclick=()=>d.classList.remove("open");
 }
 function matches(p){
+  if(state.pay==="diningOnly" && !(p.acceptsDiningDollars && !p.acceptsBamaCash)) return false;
   if(state.pay==="bamaOnly" && p.acceptsDiningDollars) return false;
   if(state.pay==="both" && !p.acceptsDiningDollars) return false;
   if(state.cat!=="all" && p.category!==state.cat) return false;
@@ -211,6 +213,14 @@ function render(){
     b.innerHTML=`${p.localImage?`<img src="${p.localImage}" alt="">`:""}<span><span class="nm">${p.name}</span><span class="ad" style="display:block">${p.address}</span><span class="tags">${tagsHTML(p)}</span></span>`;
     b.onclick=()=>{ map.flyTo([p.displayLat,p.displayLng], Math.max(map.getZoom(),15), {duration:.6}); showDetail(p); };
     list.appendChild(b);
+  }
+  if(shown===0){
+    const d=document.createElement("div");
+    d.style.cssText="font-size:13.5px;line-height:1.5;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:12px";
+    d.textContent = state.pay==="diningOnly"
+      ? "No off-campus locations are Dining Dollars only. Every location that accepts Dining Dollars also accepts Bama Cash, so those places are all under Both."
+      : "No locations match these filters.";
+    list.appendChild(d);
   }
   document.getElementById("count").textContent = `Showing ${shown} of ${LOCATIONS.length} locations`;
 }
