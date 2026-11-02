@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crimson Currency — Bama Cash &amp; Dining Dollars Map | Tuscaloosa</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+  :root{ --crimson:#9E1B32; --crimson-dark:#7c1427; --slate:#333f48; --bg:#f6f4f2; --card:#fff; --line:#e3ded9; --muted:#6b7280; --amber:#b45309; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:#1f2937}
+  header{background:var(--crimson);color:#fff;padding:16px 20px 14px}
+  header h1{margin:0;font-size:26px;letter-spacing:.2px}
+  header p{margin:4px 0 0;font-size:14px;opacity:.92}
+  header .stats{margin-top:8px;font-size:12.5px;opacity:.9}
+  .layout{display:flex;align-items:stretch;min-height:calc(100vh - 108px)}
+  aside{width:368px;flex:0 0 368px;background:var(--card);border-right:1px solid var(--line);padding:14px;overflow-y:auto;max-height:calc(100vh - 108px)}
+  #mapwrap{flex:1;position:relative;min-height:420px}
+  #map{position:absolute;inset:0}
+  h2.sec{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px}
+  h2.sec:first-child{margin-top:0}
+  input[type=search]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{flex:1;padding:9px 4px;font-size:12.5px;background:#fff;border:0;border-right:1px solid var(--line);cursor:pointer;line-height:1.25}
+  .seg button:last-child{border-right:0}
+  .seg button.active{background:var(--crimson);color:#fff;font-weight:600}
+  .seg-note{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:12.5px;cursor:pointer}
+  .chip.active{background:var(--slate);color:#fff;border-color:var(--slate);font-weight:600}
+  .switchrow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px}
+  .switch{position:relative;width:46px;height:26px;flex:0 0 46px}
+  .switch input{opacity:0;width:0;height:0}
+  .track{position:absolute;inset:0;background:#cbd5e1;border-radius:999px;cursor:pointer;transition:.15s}
+  .track:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+  .switch input:checked + .track{background:var(--crimson)}
+  .switch input:checked + .track:before{transform:translateX(20px)}
+  #count{font-size:13px;color:var(--muted);margin:14px 0 8px}
+  .item{display:flex;gap:10px;width:100%;text-align:left;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:8px;cursor:pointer}
+  .item:hover{border-color:var(--crimson)}
+  .item img{width:52px;height:52px;object-fit:contain;border-radius:8px;background:#fafafa;border:1px solid var(--line);flex:0 0 52px}
+  .item .nm{font-weight:600;font-size:14px}
+  .item .ad{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .tags{margin-top:5px;display:flex;flex-wrap:wrap;gap:4px}
+  .tag{font-size:10.5px;padding:2px 7px;border-radius:999px;font-weight:600;letter-spacing:.01em}
+  .tag.both{background:var(--crimson);color:#fff}
+  .tag.bama{background:#e0e7ee;color:var(--slate)}
+  .tag.cat{background:#f3f4f6;color:#374151;border:1px solid var(--line)}
+  .tag.unavail{background:#fef3c7;color:var(--amber);border:1px solid #fde68a}
+  .pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);font-size:14px}
+  .pin span{transform:rotate(45deg)}
+  .pin.both{background:var(--crimson)}
+  .pin.bama{background:var(--slate)}
+  .pin.unavail{background:#9ca3af;opacity:.75}
+  #detail{position:absolute;left:14px;bottom:14px;z-index:800;width:min(360px,calc(100% - 28px));background:#fff;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.25);padding:14px;display:none;max-height:72%;overflow-y:auto}
+  #detail.open{display:block}
+  #detail .hero{display:flex;gap:12px;align-items:center}
+  #detail .hero img{width:72px;height:72px;object-fit:contain;border:1px solid var(--line);border-radius:10px;background:#fafafa}
+  #detail h3{margin:0;font-size:17px}
+  #detail .row{font-size:13.5px;margin-top:8px;line-height:1.45}
+  #detail .row b{color:var(--slate)}
+  #detail .note{font-size:12.5px;background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;border-radius:8px;padding:8px;margin-top:8px;line-height:1.4}
+  #detail .btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:9px 13px;border-radius:9px;font-size:13.5px;font-weight:600;text-decoration:none}
+  .btn.primary{background:var(--crimson);color:#fff}
+  .btn.ghost{border:1px solid var(--line);color:var(--slate);background:#fff}
+  #closeDetail{position:absolute;top:8px;right:10px;border:0;background:none;font-size:19px;cursor:pointer;color:var(--muted)}
+  #resetView{position:absolute;top:12px;right:12px;z-index:800;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+  footer{padding:12px 20px;font-size:12px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);background:#fff}
+  @media (max-width:860px){
+    .layout{flex-direction:column}
+    aside{width:100%;flex:none;max-height:none;order:2;border-right:0}
+    #mapwrap{order:1;height:58vh;flex:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Crimson Currency</h1>
+  <p>Every off-campus place in the Tuscaloosa area where you can spend <b>Bama Cash</b> and <b>Dining Dollars</b>.</p>
+  <div class="stats" id="headerStats"></div>
+</header>
+
+<div class="layout">
+  <aside>
+    <h2 class="sec">Search</h2>
+    <input type="search" id="search" placeholder="Search by name, street, or area (e.g. The Strip)…">
+
+    <h2 class="sec">Payment type</h2>
+    <div class="seg" id="paySeg">
+      <button data-pay="all" class="active">All</button>
+      <button data-pay="bamaOnly">Bama Cash only</button>
+      <button data-pay="both">Both</button>
+    </div>
+    <div class="seg-note">“Both” = accepts Dining Dollars <i>and</i> Bama Cash. Every Dining Dollars location also accepts Bama Cash — there are no Dining-Dollars-only locations.</div>
+
+    <h2 class="sec">Location type</h2>
+    <div class="chips" id="catChips"></div>
+
+    <h2 class="sec">Availability</h2>
+    <div class="switchrow">
+      <span>Hide places currently unavailable</span>
+      <label class="switch"><input type="checkbox" id="hideUnavail"><span class="track"></span></label>
+    </div>
+    <div class="seg-note">Unavailable places stay on the map in gray with a “Currently unavailable” tag, exactly as UA currently lists them — turn this on to filter them out.</div>
+
+    <div id="count"></div>
+    <div id="list"></div>
+  </aside>
+
+  <div id="mapwrap">
+    <div id="map"></div>
+    <button id="resetView">Reset view</button>
+    <div id="detail"></div>
+  </div>
+</div>
+
+<footer>
+  Data: University of Alabama Action Card “Bama Cash Locations” and Bama Dining “Dining Dollars” pages, retrieved November 2, 2026. Off-campus locations only — on-campus Bama Dining, vending, laundry and similar are not included in this mockup. Yogurt Mountain is intentionally omitted in this version. Hours are shown only where verified against a current Places listing on November 2, 2026; everywhere else, check the menu / website link or call ahead — no hours have been guessed. Map is locked to the Tuscaloosa / Northport area. Map data © OpenStreetMap contributors.
+</footer>
+
+<script src="vendor/leaflet.js"></script>
+<script>
+const CATEGORY_LABEL = {
+  "Fast Food / Restaurants":"Restaurant",
+  "Convenience / Gas Stations":"Convenience / Gas Station",
+  "Coffee / Dessert":"Coffee / Dessert",
+  "Grocery":"Grocery",
+  "Retail":"Retail",
+  "Beauty / Hair / Nails":"Beauty / Hair / Nails",
+  "Entertainment":"Entertainment",
+  "Medical Care Services":"Medical / Spa"
+};
+const CATEGORY_ICON = {
+  "Fast Food / Restaurants":"🍔",
+  "Convenience / Gas Stations":"⛽",
+  "Coffee / Dessert":"☕",
+  "Grocery":"🛒",
+  "Retail":"🛍️",
+  "Beauty / Hair / Nails":"💇",
+  "Entertainment":"⛳",
+  "Medical Care Services":"✚"
+};
+// Fixed scope: Tuscaloosa / Northport only. Bounds cover every pin in the
+// dataset (far south Hwy 69 S, far north Northport, far east Skyland Blvd)
+// with a small pad — the screenshot framing alone would cut 6 pins off.
+const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
+
+let LOCATIONS=[], markers=new Map();
+let state={pay:"all", cat:"all", hideUnavail:false, q:""};
+
+const map=L.map("map",{maxBounds:TUSCALOOSA_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap contributors"}).addTo(map);
+
+// Campus reference point (not a spending location; on-campus spots are out of scope)
+L.marker([33.20988,-87.54631],{icon:L.divIcon({className:"",html:'<div class="pin" style="background:#111827"><span>🎓</span></div>',iconSize:[30,30],iconAnchor:[15,28]})})
+ .addTo(map).bindPopup("<b>The University of Alabama</b><br>Campus reference point only — on-campus locations are not part of Crimson Currency.");
+
+function tagsHTML(p){
+  let t = p.acceptsDiningDollars
+    ? '<span class="tag both">Both — Bama Cash + Dining Dollars</span>'
+    : '<span class="tag bama">Bama Cash only</span>';
+  t += `<span class="tag cat">${CATEGORY_LABEL[p.category]||p.category}</span>`;
+  if(p.area) t += `<span class="tag cat">${p.area}</span>`;
+  if(p.unavailable) t += '<span class="tag unavail">Currently unavailable</span>';
+  return t;
+}
+function cityOf(p){ return p.city || "Tuscaloosa"; }
+function directionsURL(p){
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${p.name} ${p.address} ${cityOf(p)}, AL`);
+}
+function showDetail(p){
+  const d=document.getElementById("detail");
+  const hours = p.hoursVerified
+    ? `<div class="row"><b>Hours (verified Nov 2, 2026):</b><br>${p.hours.replace(/\n/g,"<br>")}</div>`
+    : `<div class="row"><b>Hours:</b> not yet verified in this mockup — check the menu / website link or call ahead.</div>`;
+  d.innerHTML = `<button id="closeDetail" aria-label="Close">×</button>
+    <div class="hero">${p.localImage?`<img src="${p.localImage}" alt="${p.name} logo">`:""}
+      <div><h3>${p.name}</h3><div class="tags">${tagsHTML(p)}</div></div></div>
+    <div class="row"><b>Address:</b> ${p.address}, ${cityOf(p)}, AL</div>
+    ${p.phone?`<div class="row"><b>Phone:</b> <a href="tel:+1${p.phone.replace(/\D/g,"")}">${p.phone}</a></div>`:""}
+    ${hours}
+    ${p.note?`<div class="note">${p.note}</div>`:""}
+    <div class="btns">
+      <a class="btn primary" href="${p.website}" target="_blank" rel="noopener">${p.linkLabel}</a>
+      <a class="btn ghost" href="${directionsURL(p)}" target="_blank" rel="noopener">Directions</a>
+    </div>`;
+  d.classList.add("open");
+  document.getElementById("closeDetail").onclick=()=>d.classList.remove("open");
+}
+function matches(p){
+  if(state.pay==="bamaOnly" && p.acceptsDiningDollars) return false;
+  if(state.pay==="both" && !p.acceptsDiningDollars) return false;
+  if(state.cat!=="all" && p.category!==state.cat) return false;
+  if(state.hideUnavail && p.unavailable) return false;
+  if(state.q){
+    const hay=`${p.name} ${p.address} ${p.area} ${p.category}`.toLowerCase();
+    if(!hay.includes(state.q)) return false;
+  }
+  return true;
+}
+function render(){
+  let shown=0;
+  const list=document.getElementById("list"); list.innerHTML="";
+  for(const p of LOCATIONS){
+    const ok=matches(p), m=markers.get(p.id);
+    if(ok){ if(!map.hasLayer(m)) m.addTo(map); shown++; }
+    else if(map.hasLayer(m)) map.removeLayer(m);
+    if(!ok) continue;
+    const b=document.createElement("button"); b.className="item";
+    b.innerHTML=`${p.localImage?`<img src="${p.localImage}" alt="">`:""}<span><span class="nm">${p.name}</span><span class="ad" style="display:block">${p.address}</span><span class="tags">${tagsHTML(p)}</span></span>`;
+    b.onclick=()=>{ map.flyTo([p.displayLat,p.displayLng], Math.max(map.getZoom(),15), {duration:.6}); showDetail(p); };
+    list.appendChild(b);
+  }
+  document.getElementById("count").textContent = `Showing ${shown} of ${LOCATIONS.length} locations`;
+}
+fetch("locations.json").then(r=>r.json()).then(data=>{
+  LOCATIONS=data.sort((a,b)=> a.name.localeCompare(b.name) || a.address.localeCompare(b.address));
+  const cats=[...new Set(LOCATIONS.map(p=>p.category))];
+  const chips=document.getElementById("catChips");
+  const mk=(val,label)=>{ const c=document.createElement("button"); c.className="chip"+(val==="all"?" active":""); c.textContent=label; c.onclick=()=>{state.cat=val; chips.querySelectorAll(".chip").forEach(x=>x.classList.remove("active")); c.classList.add("active"); render();}; chips.appendChild(c); };
+  mk("all","All types");
+  cats.forEach(c=>mk(c, CATEGORY_LABEL[c]||c));
+  for(const p of LOCATIONS){
+    const cls=p.unavailable ? "unavail" : (p.acceptsDiningDollars ? "both" : "bama");
+    const m=L.marker([p.displayLat,p.displayLng],{icon:L.divIcon({className:"",html:`<div class="pin ${cls}"><span>${CATEGORY_ICON[p.category]||"📍"}</span></div>`,iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]})});
+    m.on("click",()=>showDetail(p));
+    markers.set(p.id,m);
+  }
+  const pinBounds=L.latLngBounds(LOCATIONS.map(p=>[p.lat,p.lng]));
+  map.fitBounds(pinBounds.pad(0.06));
+  document.getElementById("resetView").onclick=()=>map.fitBounds(pinBounds.pad(0.06));
+  const biz=new Set(LOCATIONS.map(p=>p.name)).size;
+  document.getElementById("headerStats").textContent =
+    `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars (Both) · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
+  render();
+});
+document.getElementById("paySeg").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  state.pay=b.dataset.pay;
+  document.querySelectorAll("#paySeg button").forEach(x=>x.classList.toggle("active",x===b));
+  render();
+});
+document.getElementById("hideUnavail").addEventListener("change",e=>{state.hideUnavail=e.target.checked; render();});
+document.getElementById("search").addEventListener("input",e=>{state.q=e.target.value.trim().toLowerCase(); render();});
+</script>
+</body>
+</html>

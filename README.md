@@ -1,0 +1,40 @@
+# Crimson Currency
+
+Interactive map of off-campus locations in Tuscaloosa / Northport, Alabama where
+University of Alabama students can spend **Bama Cash** and **Dining Dollars**.
+
+- 64 pins / 58 businesses, one pin per street address
+- Filter by payment type (Bama Cash only / Both), location type, and availability
+  ("Currently unavailable" places can be toggled off)
+- Click a pin for the business logo, address, phone, hours (where verified),
+  and a menu / website link
+- Map is locked to the Tuscaloosa / Northport area
+
+## Run locally
+
+```sh
+python3 -m http.server 8325 --directory site
+# open http://localhost:8325
+```
+
+## Layout
+
+- `site/` — the static site (index.html, locations.json, images/, vendor/)
+- `data/` — dataset builds (pins before/after geocoding, final locations.json)
+- `tools/` — dataset pipeline scripts (scrape, expand, geocode, fix)
+
+## Data sources
+
+University of Alabama Action Card "Bama Cash Locations" and Bama Dining
+"Dining Dollars" pages, retrieved November 2, 2026. Hours are shown only where
+verified against a current Places listing; no hours are guessed.
+
+## Deployment (Money)
+
+Served on Money at http://192.168.0.3:8325 from
+`/home/muse-agent/crimson-currency/dist` by the `crimson-currency.service`
+systemd user service. To redeploy after pulling changes:
+
+```sh
+cp -r site/* ~/crimson-currency/dist/
+```
