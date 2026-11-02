@@ -121,6 +121,7 @@
 </footer>
 
 <script src="vendor/leaflet.js"></script>
+<script src="locations.js"></script>
 <script>
 const CATEGORY_LABEL = {
   "Fast Food / Restaurants":"Restaurant",
@@ -229,7 +230,7 @@ function render(){
   }
   document.getElementById("count").textContent = `Showing ${shown} of ${LOCATIONS.length} locations`;
 }
-fetch("locations.json").then(r=>r.json()).then(data=>{
+function initLocations(data){
   LOCATIONS=data.sort((a,b)=> a.name.localeCompare(b.name) || a.address.localeCompare(b.address));
   const cats=[...new Set(LOCATIONS.map(p=>p.category))];
   const chips=document.getElementById("catChips");
@@ -248,7 +249,12 @@ fetch("locations.json").then(r=>r.json()).then(data=>{
   document.getElementById("headerStats").textContent =
     `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars (Both) · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
   render();
-});
+}
+// Prefer the embedded copy (locations.js) so the page also works when opened
+// straight from disk (file://), where browsers block fetch() of locations.json.
+// Fall back to fetching locations.json when served over HTTP without it.
+if(window.CRIMSON_LOCATIONS){ initLocations(window.CRIMSON_LOCATIONS); }
+else { fetch("locations.json").then(r=>r.json()).then(initLocations); }
 document.getElementById("paySeg").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
   state.pay=b.dataset.pay;

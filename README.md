@@ -12,6 +12,13 @@ University of Alabama students can spend **Bama Cash** and **Dining Dollars**.
 
 ## Run locally
 
+Easiest: open `index.html` (repo root — it forwards into `site/`) or
+`site/index.html` directly in a browser. Location data is embedded via
+`site/locations.js`, so the map works from disk with no server; the map
+tiles themselves load from OpenStreetMap and need an internet connection.
+
+Or serve it:
+
 ```sh
 python3 -m http.server 8325 --directory site
 # open http://localhost:8325
