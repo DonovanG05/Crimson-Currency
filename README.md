@@ -17,18 +17,23 @@ Easiest: open `index.html` (repo root — it forwards into `site/`) or
 `site/locations.js`, so the map works from disk with no server; the map
 tiles themselves load from OpenStreetMap and need an internet connection.
 
-Or serve it:
+Or serve it with npm instead of Python. From the repo root, with Node.js
+18+ / npm installed:
 
 ```sh
-python3 -m http.server 8325 --directory site
+npm start
 # open http://localhost:8325
 ```
+
+There are no npm dependencies to install first — `npm start` just runs the
+small Node static server in `serve.mjs`.
 
 ## Layout
 
 - `site/` — the static site (index.html, locations.json, images/, vendor/)
 - `data/` — dataset builds (pins before/after geocoding, final locations.json)
 - `tools/` — dataset pipeline scripts (scrape, expand, geocode, fix)
+- `package.json` / `serve.mjs` — no-dependency Node server for `npm start`
 
 ## Data sources
 

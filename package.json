@@ -1,0 +1,1 @@
+{"description":"Interactive map of off-campus Tuscaloosa locations that accept Dining Dollars and Bama Cash.","engines":{"node":">=18"},"name":"crimson-currency","private":true,"scripts":{"serve":"node serve.mjs","start":"node serve.mjs"},"type":"module","version":"1.0.0"}
