@@ -183,7 +183,7 @@ const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
 // of every other pin and stretched the opening view; it stays on the map
 // and in the list, and selecting it still flies there within the pan bounds.
 const CORE_BOUNDS = L.latLngBounds([33.156,-87.583],[33.245,-87.488]);
-let PIN_BOUNDS = null, FIT_BOUNDS = null; // computed in initLocations() once the data exists
+let PIN_BOUNDS = null, FIT_BOUNDS = null, ONLINE_HOME_ZOOM = null; // computed in initLocations() once the data exists
 
 let LOCATIONS=[], markers=new Map();
 let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online", aiIds:null};
@@ -292,8 +292,8 @@ function initLocations(data){
     markers.set(p.id,m);
   }
   applyBaseLimits("online");
-  map.fitBounds(FIT_BOUNDS);
-  document.getElementById("resetView").onclick=()=>{ if(state.base==="blender") fitUploaded(); else map.fitBounds(FIT_BOUNDS); };
+  fitOnline();
+  document.getElementById("resetView").onclick=()=>{ if(state.base==="blender") fitUploaded(); else fitOnline(); };
   let savedBase="online"; try{ savedBase=localStorage.getItem("crimsonBase")||"online"; }catch(e){}
   if(savedBase==="blender") setBase("blender");
   const biz=new Set(LOCATIONS.map(p=>p.name)).size;
@@ -308,9 +308,10 @@ if(window.CRIMSON_LOCATIONS){ initLocations(window.CRIMSON_LOCATIONS); }
 else { fetch("locations.json").then(r=>r.json()).then(initLocations); }
 function applyBaseLimits(which){
   if(!PIN_BOUNDS || !FIT_BOUNDS) return;
-  if(which==="blender"){ map.setMaxBounds(IMG_BOUNDS); map.setMaxZoom(15); map.setMinZoom(map.getBoundsZoom(IMG_BOUNDS, true)); }
-  else { map.setMaxBounds(PIN_BOUNDS); map.setMaxZoom(18); map.setMinZoom(map.getBoundsZoom(FIT_BOUNDS)); }
+  if(which==="blender"){ map.setMaxBounds(IMG_BOUNDS); map.setMaxZoom(15); map.setMinZoom(0); map.setMinZoom(map.getBoundsZoom(IMG_BOUNDS, true)); }
+  else { map.setMaxBounds(PIN_BOUNDS); map.setMaxZoom(18); map.setMinZoom(0); ONLINE_HOME_ZOOM = map.getBoundsZoom(FIT_BOUNDS) + 1; map.setMinZoom(ONLINE_HOME_ZOOM); }
 }
+function fitOnline(){ if(ONLINE_HOME_ZOOM==null) applyBaseLimits("online"); map.setView(FIT_BOUNDS.getCenter(), ONLINE_HOME_ZOOM); }
 function fitUploaded(){ map.setView(IMG_BOUNDS.getCenter(), map.getBoundsZoom(IMG_BOUNDS, true)); }
 function setBase(which){
   state.base=which;
@@ -319,7 +320,7 @@ function setBase(which){
   document.querySelectorAll("#baseToggle button").forEach(x=>x.classList.toggle("active",x.dataset.base===which));
   document.getElementById("detail").classList.remove("open");
   applyBaseLimits(which);
-  if(which==="blender") fitUploaded(); else map.fitBounds(FIT_BOUNDS);
+  if(which==="blender") fitUploaded(); else fitOnline();
   try{ localStorage.setItem("crimsonBase", which); }catch(e){}
   render();
 }
@@ -427,7 +428,7 @@ document.getElementById("aiKeySave").addEventListener("click",()=>{
 });
 document.getElementById("aiClear").addEventListener("click",()=>{
   state.aiIds=null; document.getElementById("aiClear").style.display="none";
-  if(state.base==="blender") fitUploaded(); else map.fitBounds(FIT_BOUNDS); render();
+  if(state.base==="blender") fitUploaded(); else fitOnline(); render();
 });
 refreshKeyLabel();
 
