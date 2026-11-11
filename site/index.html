@@ -183,7 +183,7 @@ const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
 // of every other pin and stretched the opening view; it stays on the map
 // and in the list, and selecting it still flies there within the pan bounds.
 const CORE_BOUNDS = L.latLngBounds([33.156,-87.583],[33.245,-87.488]);
-let PIN_BOUNDS = null; // computed in initLocations() once the data exists
+let PIN_BOUNDS = null, FIT_BOUNDS = null; // computed in initLocations() once the data exists
 
 let LOCATIONS=[], markers=new Map();
 let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online", aiIds:null};
@@ -272,7 +272,14 @@ function render(){
 }
 function initLocations(data){
   LOCATIONS=data.sort((a,b)=> a.name.localeCompare(b.name) || a.address.localeCompare(b.address));
-  PIN_BOUNDS = L.latLngBounds(LOCATIONS.map(p=>[p.displayLat,p.displayLng])).pad(0.05);
+  const rawBounds = L.latLngBounds(LOCATIONS.map(p=>[p.displayLat,p.displayLng]));
+  PIN_BOUNDS = rawBounds.pad(0.05);
+  // Default frame: if one pin sits far south of every other (a lone outlier
+  // separated by a clear gap), the opening frame starts at the main cluster
+  // instead — the outlier stays on the map, reachable by panning south.
+  const latsSorted = LOCATIONS.map(p=>p.displayLat).sort((a,b)=>a-b);
+  const fitSouth = (latsSorted[1]-latsSorted[0] > 0.02) ? latsSorted[1] : latsSorted[0];
+  FIT_BOUNDS = L.latLngBounds([fitSouth, rawBounds.getWest()], [rawBounds.getNorth(), rawBounds.getEast()]).pad(0.03);
   const cats=[...new Set(LOCATIONS.map(p=>p.category))];
   const chips=document.getElementById("catChips");
   const mk=(val,label)=>{ const c=document.createElement("button"); c.className="chip"+(val==="all"?" active":""); c.textContent=label; c.onclick=()=>{state.cat=val; chips.querySelectorAll(".chip").forEach(x=>x.classList.remove("active")); c.classList.add("active"); render();}; chips.appendChild(c); };
@@ -285,8 +292,8 @@ function initLocations(data){
     markers.set(p.id,m);
   }
   applyBaseLimits("online");
-  map.fitBounds(PIN_BOUNDS);
-  document.getElementById("resetView").onclick=()=>{ if(state.base==="blender") fitUploaded(); else map.fitBounds(PIN_BOUNDS); };
+  map.fitBounds(FIT_BOUNDS);
+  document.getElementById("resetView").onclick=()=>{ if(state.base==="blender") fitUploaded(); else map.fitBounds(FIT_BOUNDS); };
   let savedBase="online"; try{ savedBase=localStorage.getItem("crimsonBase")||"online"; }catch(e){}
   if(savedBase==="blender") setBase("blender");
   const biz=new Set(LOCATIONS.map(p=>p.name)).size;
@@ -300,9 +307,9 @@ function initLocations(data){
 if(window.CRIMSON_LOCATIONS){ initLocations(window.CRIMSON_LOCATIONS); }
 else { fetch("locations.json").then(r=>r.json()).then(initLocations); }
 function applyBaseLimits(which){
-  if(!PIN_BOUNDS) return;
+  if(!PIN_BOUNDS || !FIT_BOUNDS) return;
   if(which==="blender"){ map.setMaxBounds(IMG_BOUNDS); map.setMaxZoom(15); map.setMinZoom(map.getBoundsZoom(IMG_BOUNDS, true)); }
-  else { map.setMaxBounds(PIN_BOUNDS); map.setMaxZoom(18); map.setMinZoom(map.getBoundsZoom(PIN_BOUNDS)); }
+  else { map.setMaxBounds(PIN_BOUNDS); map.setMaxZoom(18); map.setMinZoom(map.getBoundsZoom(FIT_BOUNDS)); }
 }
 function fitUploaded(){ map.setView(IMG_BOUNDS.getCenter(), map.getBoundsZoom(IMG_BOUNDS, true)); }
 function setBase(which){
@@ -312,7 +319,7 @@ function setBase(which){
   document.querySelectorAll("#baseToggle button").forEach(x=>x.classList.toggle("active",x.dataset.base===which));
   document.getElementById("detail").classList.remove("open");
   applyBaseLimits(which);
-  if(which==="blender") fitUploaded(); else map.fitBounds(PIN_BOUNDS);
+  if(which==="blender") fitUploaded(); else map.fitBounds(FIT_BOUNDS);
   try{ localStorage.setItem("crimsonBase", which); }catch(e){}
   render();
 }
@@ -420,7 +427,7 @@ document.getElementById("aiKeySave").addEventListener("click",()=>{
 });
 document.getElementById("aiClear").addEventListener("click",()=>{
   state.aiIds=null; document.getElementById("aiClear").style.display="none";
-  if(state.base==="blender") fitUploaded(); else map.fitBounds(PIN_BOUNDS); render();
+  if(state.base==="blender") fitUploaded(); else map.fitBounds(FIT_BOUNDS); render();
 });
 refreshKeyLabel();
 
