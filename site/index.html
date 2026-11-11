@@ -183,12 +183,12 @@ const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
 // of every other pin and stretched the opening view; it stays on the map
 // and in the list, and selecting it still flies there within the pan bounds.
 const CORE_BOUNDS = L.latLngBounds([33.156,-87.583],[33.245,-87.488]);
-const PIN_BOUNDS = L.latLngBounds(LOCATIONS.map(p=>[p.displayLat,p.displayLng])).pad(0.05);
+let PIN_BOUNDS = null; // computed in initLocations() once the data exists
 
 let LOCATIONS=[], markers=new Map();
 let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online", aiIds:null};
 
-const map=L.map("map",{maxBounds:PIN_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
+const map=L.map("map",{maxBounds:TUSCALOOSA_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
 const osmLayer=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap contributors"}).addTo(map);
 // Uploaded version: the wide (2:1) Blender base-map render. Its frame covers
 // the full pin scope plus margin — all 64 pins fall inside it. Exact bounds
@@ -272,6 +272,7 @@ function render(){
 }
 function initLocations(data){
   LOCATIONS=data.sort((a,b)=> a.name.localeCompare(b.name) || a.address.localeCompare(b.address));
+  PIN_BOUNDS = L.latLngBounds(LOCATIONS.map(p=>[p.displayLat,p.displayLng])).pad(0.05);
   const cats=[...new Set(LOCATIONS.map(p=>p.category))];
   const chips=document.getElementById("catChips");
   const mk=(val,label)=>{ const c=document.createElement("button"); c.className="chip"+(val==="all"?" active":""); c.textContent=label; c.onclick=()=>{state.cat=val; chips.querySelectorAll(".chip").forEach(x=>x.classList.remove("active")); c.classList.add("active"); render();}; chips.appendChild(c); };
@@ -299,6 +300,7 @@ function initLocations(data){
 if(window.CRIMSON_LOCATIONS){ initLocations(window.CRIMSON_LOCATIONS); }
 else { fetch("locations.json").then(r=>r.json()).then(initLocations); }
 function applyBaseLimits(which){
+  if(!PIN_BOUNDS) return;
   if(which==="blender"){ map.setMaxBounds(IMG_BOUNDS); map.setMaxZoom(15); map.setMinZoom(map.getBoundsZoom(IMG_BOUNDS, true)); }
   else { map.setMaxBounds(PIN_BOUNDS); map.setMaxZoom(18); map.setMinZoom(map.getBoundsZoom(PIN_BOUNDS)); }
 }
