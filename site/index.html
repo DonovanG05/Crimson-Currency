@@ -66,6 +66,7 @@
   .btn.ghost{border:1px solid var(--line);color:var(--slate);background:#fff}
   #closeDetail{position:absolute;top:8px;right:10px;border:0;background:none;font-size:19px;cursor:pointer;color:var(--muted)}
   #resetView{position:absolute;top:12px;right:12px;z-index:800;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+  #baseToggle{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:800;width:min(300px,60%);background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
   footer{padding:12px 20px;font-size:12px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);background:#fff}
   @media (max-width:860px){
     .layout{flex-direction:column}
@@ -112,6 +113,10 @@
   <div id="mapwrap">
     <div id="map"></div>
     <button id="resetView">Reset view</button>
+    <div class="seg" id="baseToggle" role="group" aria-label="Map version">
+      <button data-base="online" class="active">Online map</button>
+      <button data-base="blender">Uploaded map</button>
+    </div>
     <div id="detail"></div>
   </div>
 </div>
@@ -154,10 +159,15 @@ const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
 const CORE_BOUNDS = L.latLngBounds([33.156,-87.583],[33.245,-87.488]);
 
 let LOCATIONS=[], markers=new Map();
-let state={pay:"all", cat:"all", hideUnavail:false, q:""};
+let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online"};
 
 const map=L.map("map",{maxBounds:TUSCALOOSA_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap contributors"}).addTo(map);
+const osmLayer=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap contributors"}).addTo(map);
+// Uploaded version: the Blender base-map render. The image file lives in the
+// deployed dist folder (kept out of git); its frame covers the core area only
+// (54 of 64 pins), so pins outside the frame still show, just off-image.
+const IMG_BOUNDS=L.latLngBounds([33.189414350759456,-87.57795772827363],[33.23693770267055,-87.48805663256773]);
+const blenderLayer=L.imageOverlay("blender-map.png", IMG_BOUNDS);
 
 // Campus reference point (not a spending location; on-campus spots are out of scope)
 L.marker([33.20988,-87.54631],{icon:L.divIcon({className:"",html:'<div class="pin" style="background:#111827"><span>🎓</span></div>',iconSize:[30,30],iconAnchor:[15,28]})})
@@ -244,7 +254,7 @@ function initLocations(data){
     markers.set(p.id,m);
   }
   map.fitBounds(CORE_BOUNDS);
-  document.getElementById("resetView").onclick=()=>map.fitBounds(CORE_BOUNDS);
+  document.getElementById("resetView").onclick=()=>map.fitBounds(state.base==="blender"?IMG_BOUNDS:CORE_BOUNDS);
   const biz=new Set(LOCATIONS.map(p=>p.name)).size;
   document.getElementById("headerStats").textContent =
     `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars (Both) · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
@@ -255,6 +265,15 @@ function initLocations(data){
 // Fall back to fetching locations.json when served over HTTP without it.
 if(window.CRIMSON_LOCATIONS){ initLocations(window.CRIMSON_LOCATIONS); }
 else { fetch("locations.json").then(r=>r.json()).then(initLocations); }
+function setBase(which){
+  state.base=which;
+  if(which==="blender"){ map.removeLayer(osmLayer); if(!map.hasLayer(blenderLayer)) blenderLayer.addTo(map); }
+  else { map.removeLayer(blenderLayer); if(!map.hasLayer(osmLayer)) osmLayer.addTo(map); }
+  document.querySelectorAll("#baseToggle button").forEach(x=>x.classList.toggle("active",x.dataset.base===which));
+}
+document.getElementById("baseToggle").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(b) setBase(b.dataset.base);
+});
 document.getElementById("paySeg").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
   state.pay=b.dataset.pay;
