@@ -12,15 +12,14 @@ University of Alabama students can spend **Bama Cash** and **Dining Dollars**.
 
 ## AI search (Gemini)
 
-The sidebar's **Ask AI** box answers natural-language questions such as
+The floating **Ask AI** dock (bottom-right) answers natural-language questions such as
 "where can I get sushi with Dining Dollars?" using Google Gemini 2.5 Flash,
 grounded only in the site's own location data (`site/locations.js`). The
 answer appears in the chat and the map/list filter down to the named
 locations.
 
-The key is **never** stored in this repo. Two modes:
-
-1. **Server key (recommended):** run the site with the included Node server
+The key is **never** stored in this repo. It works one way: run the site
+with the included Node server
    and give the *server* a key via the `GEMINI_API_KEY` environment
    variable. The key lives only in the server's environment — never in git,
    never sent to browsers — and every visitor can use Ask AI with nothing
@@ -36,7 +35,37 @@ The key is **never** stored in this repo. Two modes:
 
 If the server has no key set, Ask AI simply reports itself unavailable;
 the map and list work normally without it. Nobody's key is ever committed.
-Free keys: https://aistudio.google.com/apikey
+
+### Use your own Gemini key
+
+Ask AI runs on whoever hosts the site's key. To use your own:
+
+1. Go to https://aistudio.google.com/apikey, sign in with a Google
+   account, click **Create API key**, and copy the key it gives you.
+   (The free tier is plenty for this site.)
+2. Give it to the server as the `GEMINI_API_KEY` environment variable,
+   in the same terminal you start the server from:
+
+   - **Linux / macOS:** `export GEMINI_API_KEY="your-key-here"`, then
+     `npm start`
+   - **Windows PowerShell:** `$env:GEMINI_API_KEY = "your-key-here"`,
+     then `npm start`
+   - **Windows CMD:** `set GEMINI_API_KEY=your-key-here`, then
+     `npm start`
+
+   For a server that should keep the key across restarts, put the line
+   `GEMINI_API_KEY=your-key-here` in an environment file outside the repo
+   (for example `~/.config/crimson-currency.env`, permissions 600) and
+   point your service manager at it — the live deployment does exactly
+   this with systemd's `EnvironmentFile`.
+3. Start the server and check its log: it should print
+   `AI search: server key configured (/api/ask on)`. Then open the site
+   and ask a question, e.g. "where can I get sushi with Dining Dollars?"
+
+**Never paste your key into any file inside this repo** (not the HTML, not
+a `.env` in the project folder) and never commit it — anyone with the key
+can spend your quota. `.env` files are git-ignored here as a safety net,
+but the environment variable is the supported route.
 
 ## Run locally
 
