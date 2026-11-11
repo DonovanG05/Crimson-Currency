@@ -76,6 +76,17 @@
   .msg.ai{background:#fdf2f4;border:1px solid #f3d3da;align-self:flex-start;max-width:96%}
   .msg.err{background:#fef3c7;border:1px solid #fde68a;color:#7c2d12;align-self:flex-start;max-width:96%}
   #aiClear{margin-top:10px}
+  #sidebar{position:relative}
+  #sideHide{position:absolute;top:10px;right:10px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:600;color:var(--slate);cursor:pointer;z-index:5}
+  #sideShow{position:fixed;left:0;top:120px;z-index:1100;background:var(--crimson);color:#fff;border:0;border-radius:0 10px 10px 0;padding:12px 8px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  #aiDock{position:fixed;right:16px;bottom:16px;z-index:1200;width:min(385px,calc(100vw - 32px));display:flex;flex-direction:column;gap:8px}
+  #aiPanel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 32px rgba(0,0,0,.28);padding:12px;max-height:52vh;overflow-y:auto}
+  #aiPanelHead{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;font-weight:700;color:var(--slate)}
+  #aiMin{border:0;background:none;font-size:19px;line-height:1;cursor:pointer;color:var(--muted);padding:2px 7px}
+  #aiPill{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 6px 6px 15px;box-shadow:0 10px 32px rgba(0,0,0,.28)}
+  #aiPill .spark{color:var(--crimson);font-size:15px}
+  #aiPill input{flex:1;min-width:0;width:auto;border:0;outline:none;background:transparent;font-size:14px;padding:6px 0}
+  #aiPill .btn{border-radius:999px}
   #closeDetail{position:absolute;top:8px;right:10px;border:0;background:none;font-size:19px;cursor:pointer;color:var(--muted)}
   #resetView{position:absolute;top:12px;right:12px;z-index:800;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
   #baseToggle{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:800;width:min(300px,60%);background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
@@ -95,20 +106,8 @@
 </header>
 
 <div class="layout">
-  <aside>
-    <h2 class="sec">Ask AI — advanced search</h2>
-    <div class="airow">
-      <input type="search" id="aiQuery" placeholder="e.g. Where can I get sushi with Dining Dollars?">
-      <button id="aiAsk" class="btn primary">Ask</button>
-    </div>
-    <button id="aiKeyToggle">🔑 Set Gemini API key</button>
-    <div id="aiKeyForm" style="display:none">
-      <input type="password" id="aiKeyInput" placeholder="Paste your Gemini API key" autocomplete="off">
-      <button id="aiKeySave" class="btn ghost">Save key</button>
-      <div class="seg-note">If this site’s server has its own key, Ask just works and you don’t need this. Otherwise paste your own key — it is stored only in this browser, sent only to Google, and never part of the site’s code. Free key: aistudio.google.com/apikey</div>
-    </div>
-    <div id="aiChat"></div>
-    <button id="aiClear" class="btn ghost" style="display:none">Clear AI results</button>
+  <aside id="sidebar">
+    <button id="sideHide" title="Hide this panel">&laquo; Hide</button>
 
     <h2 class="sec">Search</h2>
     <input type="search" id="search" placeholder="Search by name, street, or area (e.g. The Strip)…">
@@ -116,11 +115,11 @@
     <h2 class="sec">Payment type</h2>
     <div class="seg" id="paySeg">
       <button data-pay="all" class="active">All</button>
-      <button data-pay="diningOnly">Dining Dollars only</button>
+      <button data-pay="both">Dining Dollars + Bama Cash</button>
       <button data-pay="bamaOnly">Bama Cash only</button>
-      <button data-pay="both">Both</button>
     </div>
-    <div class="seg-note">Each location's tag is Dining Dollars only, Bama Cash only, or Both. Heads-up: in UA's current listings every Dining Dollars location also accepts Bama Cash, so “Dining Dollars only” currently matches 0 locations — those places are all under Both.</div>
+
+    <div class="seg-note">Every place that takes Dining Dollars also takes Bama Cash &mdash; so the two groups are &ldquo;Dining Dollars + Bama Cash&rdquo; and &ldquo;Bama Cash only.&rdquo;</div>
 
     <h2 class="sec">Location type</h2>
     <div class="chips" id="catChips"></div>
@@ -150,6 +149,26 @@
 <footer>
   Data: University of Alabama Action Card “Bama Cash Locations” and Bama Dining “Dining Dollars” pages, retrieved November 2, 2026. Off-campus locations only — on-campus Bama Dining, vending, laundry and similar are not included in this mockup. Yogurt Mountain is intentionally omitted in this version. Hours are shown only where verified against a current Places listing on November 2, 2026; everywhere else, check the menu / website link or call ahead — no hours have been guessed. Map is locked to the Tuscaloosa / Northport area. The Ask AI search uses Google Gemini 2.5 Flash with an API key you provide — it stays in your browser and is never part of this site’s code. Map data © OpenStreetMap contributors.
 </footer>
+
+<button id="sideShow" style="display:none" title="Show the list panel">&raquo;</button>
+<div id="aiDock">
+  <div id="aiPanel" style="display:none">
+    <div id="aiPanelHead"><span>Ask AI &mdash; advanced search</span><button id="aiMin" title="Minimize">&ndash;</button></div>
+    <div id="aiChat"></div>
+    <button id="aiKeyToggle">&#128273; Set Gemini API key</button>
+    <div id="aiKeyForm" style="display:none">
+      <input type="password" id="aiKeyInput" placeholder="Paste your Gemini API key" autocomplete="off">
+      <button id="aiKeySave" class="btn ghost">Save key</button>
+      <div class="seg-note">If this site&rsquo;s server has its own key, Ask just works and you don&rsquo;t need this. Otherwise paste your own key &mdash; it is stored only in this browser, sent only to Google, and never part of the site&rsquo;s code. Free key: aistudio.google.com/apikey</div>
+    </div>
+    <button id="aiClear" class="btn ghost" style="display:none">Clear AI results</button>
+  </div>
+  <div id="aiPill">
+    <span class="spark">&#10022;</span>
+    <input type="search" id="aiQuery" placeholder="Ask me anything&hellip;">
+    <button id="aiAsk" class="btn primary">Ask</button>
+  </div>
+</div>
 
 <script src="vendor/leaflet.js"></script>
 <script src="locations.js"></script>
@@ -202,7 +221,7 @@ L.marker([33.20988,-87.54631],{icon:L.divIcon({className:"",html:'<div class="pi
 
 function tagsHTML(p){
   let t = p.acceptsDiningDollars
-    ? '<span class="tag both">Both — Bama Cash + Dining Dollars</span>'
+    ? '<span class="tag both">Dining Dollars + Bama Cash</span>'
     : '<span class="tag bama">Bama Cash only</span>';
   t += `<span class="tag cat">${CATEGORY_LABEL[p.category]||p.category}</span>`;
   if(p.area) t += `<span class="tag cat">${p.area}</span>`;
@@ -234,7 +253,6 @@ function showDetail(p){
 }
 function matches(p){
   if(state.aiIds && !state.aiIds.has(p.id)) return false;
-  if(state.pay==="diningOnly" && !(p.acceptsDiningDollars && !p.acceptsBamaCash)) return false;
   if(state.pay==="bamaOnly" && p.acceptsDiningDollars) return false;
   if(state.pay==="both" && !p.acceptsDiningDollars) return false;
   if(state.cat!=="all" && p.category!==state.cat) return false;
@@ -263,8 +281,6 @@ function render(){
     d.style.cssText="font-size:13.5px;line-height:1.5;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:12px";
     d.textContent = (state.aiIds && state.aiIds.size===0)
       ? "The AI found no locations matching that question — try rephrasing it, or clear the AI results."
-      : state.pay==="diningOnly"
-      ? "No off-campus locations are Dining Dollars only. Every location that accepts Dining Dollars also accepts Bama Cash, so those places are all under Both."
       : "No locations match these filters.";
     list.appendChild(d);
   }
@@ -298,7 +314,7 @@ function initLocations(data){
   if(savedBase==="blender") setBase("blender");
   const biz=new Set(LOCATIONS.map(p=>p.name)).size;
   document.getElementById("headerStats").textContent =
-    `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars (Both) · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
+    `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars + Bama Cash · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
   render();
 }
 // Prefer the embedded copy (locations.js) so the page also works when opened
@@ -325,6 +341,11 @@ function setBase(which){
   render();
 }
 let rzT; window.addEventListener("resize",()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ applyBaseLimits(state.base); if(map.getZoom()<map.getMinZoom()) map.setZoom(map.getMinZoom()); },150); });
+document.getElementById("aiMin").addEventListener("click",()=>{ document.getElementById("aiPanel").style.display="none"; });
+document.getElementById("aiQuery").addEventListener("focus",()=>{ if(document.getElementById("aiChat").children.length) document.getElementById("aiPanel").style.display=""; });
+function refreshMapSize(){ setTimeout(()=>{ map.invalidateSize(); applyBaseLimits(state.base); if(map.getZoom()<map.getMinZoom()) map.setZoom(map.getMinZoom()); },60); }
+document.getElementById("sideHide").addEventListener("click",()=>{ document.getElementById("sidebar").style.display="none"; document.getElementById("sideShow").style.display=""; refreshMapSize(); });
+document.getElementById("sideShow").addEventListener("click",()=>{ document.getElementById("sidebar").style.display=""; document.getElementById("sideShow").style.display="none"; refreshMapSize(); });
 document.getElementById("baseToggle").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(b) setBase(b.dataset.base);
 });
@@ -347,7 +368,8 @@ function refreshKeyLabel(){
 }
 function addMsg(text, cls){
   const d=document.createElement("div"); d.className="msg "+cls; d.textContent=text;
-  document.getElementById("aiChat").appendChild(d); return d;
+  const panel=document.getElementById("aiPanel"); panel.style.display="";
+  document.getElementById("aiChat").appendChild(d); panel.scrollTop=panel.scrollHeight; return d;
 }
 function locationsContext(){
   return LOCATIONS.map(p=>({id:p.id, name:p.name, category:CATEGORY_LABEL[p.category]||p.category, area:p.area||undefined, address:p.address, city:cityOf(p), diningDollars:p.acceptsDiningDollars, bamaCash:p.acceptsBamaCash, unavailable:p.unavailable||undefined, hours:p.hoursVerified?p.hours:undefined, note:p.note||undefined}));
@@ -372,7 +394,7 @@ async function askViaProxy(q){
   return data;
 }
 async function askGeminiDirect(q){
-  const system="You are the advanced search for Crimson Currency, a map of off-campus places near the University of Alabama in Tuscaloosa where students can pay with Bama Cash or Dining Dollars. Answer ONLY from the location list provided — never invent a place. A location with diningDollars:true accepts Dining Dollars (those places also accept Bama Cash and are tagged 'Both'); a location with diningDollars:false accepts Bama Cash only. Infer cuisine and food types from names and categories (for example, sushi from a Japanese restaurant's name). In 'answer', write a friendly reply that NAMES every matching location. In 'locationIds', return the id of every location that matches the question — all of them, not just examples. If nothing matches, say so in 'answer' and return an empty list. Mention currently unavailable locations only if asked about them, and flag them as unavailable in the answer.";
+  const system="You are the advanced search for Crimson Currency, a map of off-campus places near the University of Alabama in Tuscaloosa where students can pay with Bama Cash or Dining Dollars. Answer ONLY from the location list provided — never invent a place. A location with diningDollars:true accepts Dining Dollars (those places also accept Bama Cash and are tagged 'Dining Dollars + Bama Cash'); a location with diningDollars:false accepts Bama Cash only. Infer cuisine and food types from names and categories (for example, sushi from a Japanese restaurant's name). In 'answer', write a friendly reply that NAMES every matching location. In 'locationIds', return the id of every location that matches the question — all of them, not just examples. If nothing matches, say so in 'answer' and return an empty list. Mention currently unavailable locations only if asked about them, and flag them as unavailable in the answer.";
   const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",{
     method:"POST",
     headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},
