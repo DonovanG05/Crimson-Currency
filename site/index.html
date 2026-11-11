@@ -283,7 +283,7 @@ function initLocations(data){
     markers.set(p.id,m);
   }
   map.fitBounds(CORE_BOUNDS);
-  document.getElementById("resetView").onclick=()=>map.fitBounds(state.base==="blender"?IMG_BOUNDS:CORE_BOUNDS);
+  document.getElementById("resetView").onclick=()=>{ if(state.base==="blender") fitUploaded(); else map.fitBounds(CORE_BOUNDS); };
   const biz=new Set(LOCATIONS.map(p=>p.name)).size;
   document.getElementById("headerStats").textContent =
     `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars (Both) · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
@@ -294,6 +294,7 @@ function initLocations(data){
 // Fall back to fetching locations.json when served over HTTP without it.
 if(window.CRIMSON_LOCATIONS){ initLocations(window.CRIMSON_LOCATIONS); }
 else { fetch("locations.json").then(r=>r.json()).then(initLocations); }
+function fitUploaded(){ map.setView(IMG_BOUNDS.getCenter(), map.getBoundsZoom(IMG_BOUNDS, true)); }
 function setBase(which){
   state.base=which;
   if(which==="blender"){ map.removeLayer(osmLayer); if(!map.hasLayer(blenderLayer)) blenderLayer.addTo(map); }
@@ -301,7 +302,7 @@ function setBase(which){
   document.querySelectorAll("#baseToggle button").forEach(x=>x.classList.toggle("active",x.dataset.base===which));
   document.getElementById("detail").classList.remove("open");
   map.setMaxBounds(which==="blender"?IMG_BOUNDS:TUSCALOOSA_BOUNDS);
-  map.fitBounds(which==="blender"?IMG_BOUNDS:CORE_BOUNDS);
+  if(which==="blender") fitUploaded(); else map.fitBounds(CORE_BOUNDS);
   render();
 }
 document.getElementById("baseToggle").addEventListener("click",e=>{
@@ -338,8 +339,7 @@ function applyAiResults(ids){
   render();
   const shown=LOCATIONS.filter(p=>matches(p));
   if(shown.length){
-    if(state.base==="blender") map.fitBounds(IMG_BOUNDS);
-    else map.fitBounds(L.latLngBounds(shown.map(p=>[p.displayLat,p.displayLng])), {padding:[45,45], maxZoom:16});
+    map.fitBounds(L.latLngBounds(shown.map(p=>[p.displayLat,p.displayLng])), {padding:[45,45], maxZoom:16});
   }
 }
 async function askViaProxy(q){
@@ -408,7 +408,7 @@ document.getElementById("aiKeySave").addEventListener("click",()=>{
 });
 document.getElementById("aiClear").addEventListener("click",()=>{
   state.aiIds=null; document.getElementById("aiClear").style.display="none";
-  map.fitBounds(state.base==="blender"?IMG_BOUNDS:CORE_BOUNDS); render();
+  if(state.base==="blender") fitUploaded(); else map.fitBounds(CORE_BOUNDS); render();
 });
 refreshKeyLabel();
 
