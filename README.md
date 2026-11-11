@@ -34,13 +34,9 @@ The key is **never** stored in this repo. Two modes:
    location data, validates the returned location IDs against the dataset,
    and rate-limits questions per visitor (30/hour) since the key is shared.
 
-2. **Your own key (fallback):** if the server has no key, the page falls
-   back to calling Gemini directly from the browser with a key you paste
-   under "Set Gemini API key". That key is saved only in your browser's
-   localStorage. This also covers opening the page straight from disk.
-
-A fresh `git clone` therefore works either way; nobody's key is ever
-committed. Free keys: https://aistudio.google.com/apikey
+If the server has no key set, Ask AI simply reports itself unavailable;
+the map and list work normally without it. Nobody's key is ever committed.
+Free keys: https://aistudio.google.com/apikey
 
 ## Run locally
 

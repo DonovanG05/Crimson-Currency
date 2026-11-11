@@ -168,5 +168,5 @@ const server = createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`Crimson Currency is running at http://localhost:${port}`);
   console.log(`Serving ${siteRoot}`);
-  console.log(GEMINI_KEY ? "AI search: server key configured (/api/ask on)" : "AI search: no GEMINI_API_KEY set (/api/ask off, browser-key fallback)");
+  console.log(GEMINI_KEY ? "AI search: server key configured (/api/ask on)" : "AI search: no GEMINI_API_KEY set (/api/ask off)");
 });
