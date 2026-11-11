@@ -18,12 +18,29 @@ grounded only in the site's own location data (`site/locations.js`). The
 answer appears in the chat and the map/list filter down to the named
 locations.
 
-It needs a Gemini API key, and the key is **never** stored in this repo:
-open the page, click "Set Gemini API key", and paste your key. It is saved
-in your browser's localStorage and sent only to Google's API — the page
-calls Gemini directly, there is no server and no config file. A fresh
-`git clone` therefore works exactly the same way; everyone supplies their
-own key. Free keys: https://aistudio.google.com/apikey
+The key is **never** stored in this repo. Two modes:
+
+1. **Server key (recommended):** run the site with the included Node server
+   and give the *server* a key via the `GEMINI_API_KEY` environment
+   variable. The key lives only in the server's environment — never in git,
+   never sent to browsers — and every visitor can use Ask AI with nothing
+   to set up:
+
+   ```sh
+   GEMINI_API_KEY=your-key npm start
+   ```
+
+   The server exposes `POST /api/ask`, grounds Gemini in the site's own
+   location data, validates the returned location IDs against the dataset,
+   and rate-limits questions per visitor (30/hour) since the key is shared.
+
+2. **Your own key (fallback):** if the server has no key, the page falls
+   back to calling Gemini directly from the browser with a key you paste
+   under "Set Gemini API key". That key is saved only in your browser's
+   localStorage. This also covers opening the page straight from disk.
+
+A fresh `git clone` therefore works either way; nobody's key is ever
+committed. Free keys: https://aistudio.google.com/apikey
 
 ## Run locally
 
@@ -58,10 +75,17 @@ verified against a current Places listing; no hours are guessed.
 
 ## Deployment (Money)
 
-Served on Money at http://192.168.0.3:8325 from
-`/home/muse-agent/crimson-currency/dist` by the `crimson-currency.service`
-systemd user service. To redeploy after pulling changes:
+Served on Money at http://192.168.0.3:8325 by the `crimson-currency.service`
+systemd user service, which runs the Node server
+(`/home/muse-agent/crimson-currency/serve.mjs`) with
+`SITE_ROOT=/home/muse-agent/crimson-currency/dist`. The service reads an
+optional env file at `/home/muse-agent/.config/crimson-currency.env`
+(mode 600, not in git) — put `GEMINI_API_KEY=...` there to enable the
+server-key AI mode, then restart the service. To redeploy after pulling
+changes:
 
 ```sh
 cp -r site/* ~/crimson-currency/dist/
+cp serve.mjs ~/crimson-currency/serve.mjs
+systemctl --user restart crimson-currency.service
 ```

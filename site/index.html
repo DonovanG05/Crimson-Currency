@@ -105,7 +105,7 @@
     <div id="aiKeyForm" style="display:none">
       <input type="password" id="aiKeyInput" placeholder="Paste your Gemini API key" autocomplete="off">
       <button id="aiKeySave" class="btn ghost">Save key</button>
-      <div class="seg-note">The key is stored only in this browser and sent only to Google — it is never part of the site’s code, so a fresh copy of this site from GitHub works the same way: everyone pastes their own key. Free key: aistudio.google.com/apikey</div>
+      <div class="seg-note">If this site’s server has its own key, Ask just works and you don’t need this. Otherwise paste your own key — it is stored only in this browser, sent only to Google, and never part of the site’s code. Free key: aistudio.google.com/apikey</div>
     </div>
     <div id="aiChat"></div>
     <button id="aiClear" class="btn ghost" style="display:none">Clear AI results</button>
@@ -344,37 +344,56 @@ function applyAiResults(ids){
     else map.fitBounds(L.latLngBounds(shown.map(p=>[p.displayLat,p.displayLng])), {padding:[45,45], maxZoom:16});
   }
 }
+async function askViaProxy(q){
+  // Server-proxy mode: the server holds its own Gemini key (in its
+  // environment, never in this code) and answers for every visitor.
+  const res=await fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})});
+  if(res.status===501) return null; // this server has no key of its own
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||("HTTP "+res.status));
+  return data;
+}
+async function askGeminiDirect(q){
+  const system="You are the advanced search for Crimson Currency, a map of off-campus places near the University of Alabama in Tuscaloosa where students can pay with Bama Cash or Dining Dollars. Answer ONLY from the location list provided — never invent a place. A location with diningDollars:true accepts Dining Dollars (those places also accept Bama Cash and are tagged 'Both'); a location with diningDollars:false accepts Bama Cash only. Infer cuisine and food types from names and categories (for example, sushi from a Japanese restaurant's name). In 'answer', write a friendly reply that NAMES every matching location. In 'locationIds', return the id of every location that matches the question — all of them, not just examples. If nothing matches, say so in 'answer' and return an empty list. Mention currently unavailable locations only if asked about them, and flag them as unavailable in the answer.";
+  const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},
+    body:JSON.stringify({
+      systemInstruction:{parts:[{text:system}]},
+      contents:[{parts:[{text:"Locations (JSON):\n"+JSON.stringify(locationsContext())+"\n\nQuestion: "+q}]}],
+      generationConfig:{responseMimeType:"application/json", responseSchema:{type:"OBJECT", properties:{answer:{type:"STRING"}, locationIds:{type:"ARRAY", items:{type:"INTEGER"}}}, required:["answer","locationIds"]}}
+    })
+  });
+  const data=await res.json();
+  if(!res.ok) throw new Error((data.error&&data.error.message)||("HTTP "+res.status));
+  return JSON.parse(data.candidates[0].content.parts[0].text);
+}
 async function askAI(){
   const q=document.getElementById("aiQuery").value.trim();
   if(!q) return;
-  if(!aiKey()){
-    document.getElementById("aiKeyForm").style.display="";
-    addMsg("Add your Gemini API key first — it is stored only in this browser, never in the site's code. Get a free one at aistudio.google.com/apikey.","err");
-    return;
-  }
   addMsg(q,"user");
   const btn=document.getElementById("aiAsk"); btn.disabled=true; btn.textContent="Thinking…";
   const thinking=addMsg("Looking through the locations…","ai");
   try{
-    const system="You are the advanced search for Crimson Currency, a map of off-campus places near the University of Alabama in Tuscaloosa where students can pay with Bama Cash or Dining Dollars. Answer ONLY from the location list provided — never invent a place. A location with diningDollars:true accepts Dining Dollars (those places also accept Bama Cash and are tagged 'Both'); a location with diningDollars:false accepts Bama Cash only. Infer cuisine and food types from names and categories (for example, sushi from a Japanese restaurant's name). In 'answer', write a friendly reply that NAMES every matching location. In 'locationIds', return the id of every location that matches the question — all of them, not just examples. If nothing matches, say so in 'answer' and return an empty list. Mention currently unavailable locations only if asked about them, and flag them as unavailable in the answer.";
-    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},
-      body:JSON.stringify({
-        systemInstruction:{parts:[{text:system}]},
-        contents:[{parts:[{text:"Locations (JSON):\n"+JSON.stringify(locationsContext())+"\n\nQuestion: "+q}]}],
-        generationConfig:{responseMimeType:"application/json", responseSchema:{type:"OBJECT", properties:{answer:{type:"STRING"}, locationIds:{type:"ARRAY", items:{type:"INTEGER"}}}, required:["answer","locationIds"]}}
-      })
-    });
-    const data=await res.json();
-    if(!res.ok) throw new Error((data.error&&data.error.message)||("HTTP "+res.status));
-    const out=JSON.parse(data.candidates[0].content.parts[0].text);
+    let out=null, proxyErr=null;
+    try{ out=await askViaProxy(q); }
+    catch(e){ if(!(e instanceof TypeError)) proxyErr=e; } // TypeError = no server here (e.g. page opened from disk)
+    if(!out){
+      if(aiKey()){ out=await askGeminiDirect(q); }
+      else if(proxyErr){ throw proxyErr; }
+      else{
+        thinking.remove();
+        document.getElementById("aiKeyForm").style.display="";
+        addMsg("This copy of the site has no server key, so the AI search needs your own Gemini key — it is stored only in this browser, never in the site's code. Get a free one at aistudio.google.com/apikey.","err");
+        return;
+      }
+    }
     thinking.remove();
     addMsg(out.answer,"ai");
     applyAiResults(out.locationIds);
   }catch(err){
     thinking.remove();
-    addMsg("The AI search failed ("+err.message+"). Check the saved key, or use the regular search and filters below.","err");
+    addMsg("The AI search failed ("+err.message+").","err");
   }finally{
     btn.disabled=false; btn.textContent="Ask";
   }
