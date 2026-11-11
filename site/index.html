@@ -183,11 +183,12 @@ const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
 // of every other pin and stretched the opening view; it stays on the map
 // and in the list, and selecting it still flies there within the pan bounds.
 const CORE_BOUNDS = L.latLngBounds([33.156,-87.583],[33.245,-87.488]);
+const PIN_BOUNDS = L.latLngBounds(LOCATIONS.map(p=>[p.displayLat,p.displayLng])).pad(0.05);
 
 let LOCATIONS=[], markers=new Map();
 let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online", aiIds:null};
 
-const map=L.map("map",{maxBounds:TUSCALOOSA_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
+const map=L.map("map",{maxBounds:PIN_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
 const osmLayer=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap contributors"}).addTo(map);
 // Uploaded version: the wide (2:1) Blender base-map render. Its frame covers
 // the full pin scope plus margin — all 64 pins fall inside it. Exact bounds
@@ -282,8 +283,11 @@ function initLocations(data){
     m.on("click",()=>showDetail(p));
     markers.set(p.id,m);
   }
-  map.fitBounds(CORE_BOUNDS);
-  document.getElementById("resetView").onclick=()=>{ if(state.base==="blender") fitUploaded(); else map.fitBounds(CORE_BOUNDS); };
+  applyBaseLimits("online");
+  map.fitBounds(PIN_BOUNDS);
+  document.getElementById("resetView").onclick=()=>{ if(state.base==="blender") fitUploaded(); else map.fitBounds(PIN_BOUNDS); };
+  let savedBase="online"; try{ savedBase=localStorage.getItem("crimsonBase")||"online"; }catch(e){}
+  if(savedBase==="blender") setBase("blender");
   const biz=new Set(LOCATIONS.map(p=>p.name)).size;
   document.getElementById("headerStats").textContent =
     `${LOCATIONS.length} pins · ${biz} businesses · ${LOCATIONS.filter(p=>p.acceptsDiningDollars).length} accept Dining Dollars (Both) · ${LOCATIONS.filter(p=>p.unavailable).length} currently unavailable`;
@@ -294,6 +298,10 @@ function initLocations(data){
 // Fall back to fetching locations.json when served over HTTP without it.
 if(window.CRIMSON_LOCATIONS){ initLocations(window.CRIMSON_LOCATIONS); }
 else { fetch("locations.json").then(r=>r.json()).then(initLocations); }
+function applyBaseLimits(which){
+  if(which==="blender"){ map.setMaxBounds(IMG_BOUNDS); map.setMaxZoom(15); map.setMinZoom(map.getBoundsZoom(IMG_BOUNDS, true)); }
+  else { map.setMaxBounds(PIN_BOUNDS); map.setMaxZoom(18); map.setMinZoom(map.getBoundsZoom(PIN_BOUNDS)); }
+}
 function fitUploaded(){ map.setView(IMG_BOUNDS.getCenter(), map.getBoundsZoom(IMG_BOUNDS, true)); }
 function setBase(which){
   state.base=which;
@@ -301,10 +309,12 @@ function setBase(which){
   else { map.removeLayer(blenderLayer); if(!map.hasLayer(osmLayer)) osmLayer.addTo(map); }
   document.querySelectorAll("#baseToggle button").forEach(x=>x.classList.toggle("active",x.dataset.base===which));
   document.getElementById("detail").classList.remove("open");
-  map.setMaxBounds(which==="blender"?IMG_BOUNDS:TUSCALOOSA_BOUNDS);
-  if(which==="blender") fitUploaded(); else map.fitBounds(CORE_BOUNDS);
+  applyBaseLimits(which);
+  if(which==="blender") fitUploaded(); else map.fitBounds(PIN_BOUNDS);
+  try{ localStorage.setItem("crimsonBase", which); }catch(e){}
   render();
 }
+let rzT; window.addEventListener("resize",()=>{ clearTimeout(rzT); rzT=setTimeout(()=>{ applyBaseLimits(state.base); if(map.getZoom()<map.getMinZoom()) map.setZoom(map.getMinZoom()); },150); });
 document.getElementById("baseToggle").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(b) setBase(b.dataset.base);
 });
@@ -408,7 +418,7 @@ document.getElementById("aiKeySave").addEventListener("click",()=>{
 });
 document.getElementById("aiClear").addEventListener("click",()=>{
   state.aiIds=null; document.getElementById("aiClear").style.display="none";
-  if(state.base==="blender") fitUploaded(); else map.fitBounds(CORE_BOUNDS); render();
+  if(state.base==="blender") fitUploaded(); else map.fitBounds(PIN_BOUNDS); render();
 });
 refreshKeyLabel();
 
