@@ -206,6 +206,9 @@ function showDetail(p){
   document.getElementById("closeDetail").onclick=()=>d.classList.remove("open");
 }
 function matches(p){
+  // Uploaded map scope: its frame covers only the core area, so locations
+  // outside the frame are removed entirely while that version is active.
+  if(state.base==="blender" && !IMG_BOUNDS.contains([p.displayLat,p.displayLng])) return false;
   if(state.pay==="diningOnly" && !(p.acceptsDiningDollars && !p.acceptsBamaCash)) return false;
   if(state.pay==="bamaOnly" && p.acceptsDiningDollars) return false;
   if(state.pay==="both" && !p.acceptsDiningDollars) return false;
@@ -270,6 +273,9 @@ function setBase(which){
   if(which==="blender"){ map.removeLayer(osmLayer); if(!map.hasLayer(blenderLayer)) blenderLayer.addTo(map); }
   else { map.removeLayer(blenderLayer); if(!map.hasLayer(osmLayer)) osmLayer.addTo(map); }
   document.querySelectorAll("#baseToggle button").forEach(x=>x.classList.toggle("active",x.dataset.base===which));
+  document.getElementById("detail").classList.remove("open");
+  map.fitBounds(which==="blender"?IMG_BOUNDS:CORE_BOUNDS);
+  render();
 }
 document.getElementById("baseToggle").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(b) setBase(b.dataset.base);
