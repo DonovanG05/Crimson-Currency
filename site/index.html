@@ -189,11 +189,11 @@ let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online", aiIds:n
 
 const map=L.map("map",{maxBounds:TUSCALOOSA_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
 const osmLayer=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap contributors"}).addTo(map);
-// Uploaded version: the Blender base-map render. The image file lives in the
-// deployed dist folder (kept out of git); its frame covers the core area only
-// (54 of 64 pins), so pins outside the frame still show, just off-image.
-const IMG_BOUNDS=L.latLngBounds([33.189414350759456,-87.57795772827363],[33.23693770267055,-87.48805663256773]);
-const blenderLayer=L.imageOverlay("blender-map.png", IMG_BOUNDS);
+// Uploaded version: the wide (2:1) Blender base-map render. Its frame covers
+// the full pin scope plus margin — all 64 pins fall inside it. Exact bounds
+// ship with the asset in tuscaloosa-map-wide.json.
+const IMG_BOUNDS=L.latLngBounds([33.125,-87.68775524386872],[33.252,-87.3842447561313]);
+const blenderLayer=L.imageOverlay("tuscaloosa-map-wide.png", IMG_BOUNDS);
 
 // Campus reference point (not a spending location; on-campus spots are out of scope)
 L.marker([33.20988,-87.54631],{icon:L.divIcon({className:"",html:'<div class="pin" style="background:#111827"><span>🎓</span></div>',iconSize:[30,30],iconAnchor:[15,28]})})
@@ -232,9 +232,6 @@ function showDetail(p){
   document.getElementById("closeDetail").onclick=()=>d.classList.remove("open");
 }
 function matches(p){
-  // Uploaded map scope: its frame covers only the core area, so locations
-  // outside the frame are removed entirely while that version is active.
-  if(state.base==="blender" && !IMG_BOUNDS.contains([p.displayLat,p.displayLng])) return false;
   if(state.aiIds && !state.aiIds.has(p.id)) return false;
   if(state.pay==="diningOnly" && !(p.acceptsDiningDollars && !p.acceptsBamaCash)) return false;
   if(state.pay==="bamaOnly" && p.acceptsDiningDollars) return false;
@@ -303,6 +300,7 @@ function setBase(which){
   else { map.removeLayer(blenderLayer); if(!map.hasLayer(osmLayer)) osmLayer.addTo(map); }
   document.querySelectorAll("#baseToggle button").forEach(x=>x.classList.toggle("active",x.dataset.base===which));
   document.getElementById("detail").classList.remove("open");
+  map.setMaxBounds(which==="blender"?IMG_BOUNDS:TUSCALOOSA_BOUNDS);
   map.fitBounds(which==="blender"?IMG_BOUNDS:CORE_BOUNDS);
   render();
 }

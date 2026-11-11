@@ -1,0 +1,36 @@
+{
+  "image": "tuscaloosa-map-wide.png",
+  "blend": "tuscaloosa-map-wide.blend",
+  "width_px": 5120,
+  "height_px": 2560,
+  "aspect": "2:1",
+  "projection": "Web Mercator (EPSG:3857), north up, orthographic top-down",
+  "bounds": {
+    "north": 33.25199999999999,
+    "south": 33.125,
+    "west": -87.68775524386872,
+    "east": -87.3842447561313
+  },
+  "leaflet_bounds": [
+    [
+      33.125,
+      -87.68775524386872
+    ],
+    [
+      33.25199999999999,
+      -87.3842447561313
+    ]
+  ],
+  "requested_coverage": {
+    "south": 33.125,
+    "west": -87.59,
+    "north": 33.252,
+    "east": -87.482
+  },
+  "metres_per_px_mercator": 6.598951747138199,
+  "data_source": "OpenStreetMap contributors (ODbL 1.0) via Geofabrik alabama-latest.osm.pbf",
+  "attribution_required": "(c) OpenStreetMap contributors",
+  "font": "Roboto (Apache 2.0)",
+  "contents": "roads, rail, rivers/lakes/streams, parks and green space, campus grounds, street names, highway numbers, USGS-GNIS neighborhood names. No POIs, businesses, buildings or markers.",
+  "covers_all_64_pins": true
+}
