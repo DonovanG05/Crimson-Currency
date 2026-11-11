@@ -10,6 +10,21 @@ University of Alabama students can spend **Bama Cash** and **Dining Dollars**.
   and a menu / website link
 - Map is locked to the Tuscaloosa / Northport area
 
+## AI search (Gemini)
+
+The sidebar's **Ask AI** box answers natural-language questions such as
+"where can I get sushi with Dining Dollars?" using Google Gemini 2.5 Flash,
+grounded only in the site's own location data (`site/locations.js`). The
+answer appears in the chat and the map/list filter down to the named
+locations.
+
+It needs a Gemini API key, and the key is **never** stored in this repo:
+open the page, click "Set Gemini API key", and paste your key. It is saved
+in your browser's localStorage and sent only to Google's API — the page
+calls Gemini directly, there is no server and no config file. A fresh
+`git clone` therefore works exactly the same way; everyone supplies their
+own key. Free keys: https://aistudio.google.com/apikey
+
 ## Run locally
 
 Easiest: open `index.html` (repo root — it forwards into `site/`) or

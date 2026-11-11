@@ -64,6 +64,18 @@
   .btn{display:inline-block;padding:9px 13px;border-radius:9px;font-size:13.5px;font-weight:600;text-decoration:none}
   .btn.primary{background:var(--crimson);color:#fff}
   .btn.ghost{border:1px solid var(--line);color:var(--slate);background:#fff}
+  .airow{display:flex;gap:8px}
+  .airow input{flex:1;min-width:0}
+  .airow button{white-space:nowrap}
+  #aiKeyToggle{background:none;border:0;color:var(--crimson);font-size:12.5px;font-weight:600;cursor:pointer;padding:7px 0 0}
+  #aiKeyForm input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-size:13px;margin:6px 0}
+  #aiChat{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+  #aiChat:empty{margin-top:0}
+  .msg{font-size:13.5px;line-height:1.45;padding:9px 11px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
+  .msg.user{background:#e0e7ee;color:var(--slate);align-self:flex-end;max-width:92%}
+  .msg.ai{background:#fdf2f4;border:1px solid #f3d3da;align-self:flex-start;max-width:96%}
+  .msg.err{background:#fef3c7;border:1px solid #fde68a;color:#7c2d12;align-self:flex-start;max-width:96%}
+  #aiClear{margin-top:10px}
   #closeDetail{position:absolute;top:8px;right:10px;border:0;background:none;font-size:19px;cursor:pointer;color:var(--muted)}
   #resetView{position:absolute;top:12px;right:12px;z-index:800;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
   #baseToggle{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:800;width:min(300px,60%);background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
@@ -84,6 +96,20 @@
 
 <div class="layout">
   <aside>
+    <h2 class="sec">Ask AI — advanced search</h2>
+    <div class="airow">
+      <input type="search" id="aiQuery" placeholder="e.g. Where can I get sushi with Dining Dollars?">
+      <button id="aiAsk" class="btn primary">Ask</button>
+    </div>
+    <button id="aiKeyToggle">🔑 Set Gemini API key</button>
+    <div id="aiKeyForm" style="display:none">
+      <input type="password" id="aiKeyInput" placeholder="Paste your Gemini API key" autocomplete="off">
+      <button id="aiKeySave" class="btn ghost">Save key</button>
+      <div class="seg-note">The key is stored only in this browser and sent only to Google — it is never part of the site’s code, so a fresh copy of this site from GitHub works the same way: everyone pastes their own key. Free key: aistudio.google.com/apikey</div>
+    </div>
+    <div id="aiChat"></div>
+    <button id="aiClear" class="btn ghost" style="display:none">Clear AI results</button>
+
     <h2 class="sec">Search</h2>
     <input type="search" id="search" placeholder="Search by name, street, or area (e.g. The Strip)…">
 
@@ -122,7 +148,7 @@
 </div>
 
 <footer>
-  Data: University of Alabama Action Card “Bama Cash Locations” and Bama Dining “Dining Dollars” pages, retrieved November 2, 2026. Off-campus locations only — on-campus Bama Dining, vending, laundry and similar are not included in this mockup. Yogurt Mountain is intentionally omitted in this version. Hours are shown only where verified against a current Places listing on November 2, 2026; everywhere else, check the menu / website link or call ahead — no hours have been guessed. Map is locked to the Tuscaloosa / Northport area. Map data © OpenStreetMap contributors.
+  Data: University of Alabama Action Card “Bama Cash Locations” and Bama Dining “Dining Dollars” pages, retrieved November 2, 2026. Off-campus locations only — on-campus Bama Dining, vending, laundry and similar are not included in this mockup. Yogurt Mountain is intentionally omitted in this version. Hours are shown only where verified against a current Places listing on November 2, 2026; everywhere else, check the menu / website link or call ahead — no hours have been guessed. Map is locked to the Tuscaloosa / Northport area. The Ask AI search uses Google Gemini 2.5 Flash with an API key you provide — it stays in your browser and is never part of this site’s code. Map data © OpenStreetMap contributors.
 </footer>
 
 <script src="vendor/leaflet.js"></script>
@@ -159,7 +185,7 @@ const TUSCALOOSA_BOUNDS = L.latLngBounds([33.125,-87.590],[33.252,-87.482]);
 const CORE_BOUNDS = L.latLngBounds([33.156,-87.583],[33.245,-87.488]);
 
 let LOCATIONS=[], markers=new Map();
-let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online"};
+let state={pay:"all", cat:"all", hideUnavail:false, q:"", base:"online", aiIds:null};
 
 const map=L.map("map",{maxBounds:TUSCALOOSA_BOUNDS, maxBoundsViscosity:1.0, minZoom:11, maxZoom:18});
 const osmLayer=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap contributors"}).addTo(map);
@@ -209,6 +235,7 @@ function matches(p){
   // Uploaded map scope: its frame covers only the core area, so locations
   // outside the frame are removed entirely while that version is active.
   if(state.base==="blender" && !IMG_BOUNDS.contains([p.displayLat,p.displayLng])) return false;
+  if(state.aiIds && !state.aiIds.has(p.id)) return false;
   if(state.pay==="diningOnly" && !(p.acceptsDiningDollars && !p.acceptsBamaCash)) return false;
   if(state.pay==="bamaOnly" && p.acceptsDiningDollars) return false;
   if(state.pay==="both" && !p.acceptsDiningDollars) return false;
@@ -236,7 +263,9 @@ function render(){
   if(shown===0){
     const d=document.createElement("div");
     d.style.cssText="font-size:13.5px;line-height:1.5;color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:12px";
-    d.textContent = state.pay==="diningOnly"
+    d.textContent = (state.aiIds && state.aiIds.size===0)
+      ? "The AI found no locations matching that question — try rephrasing it, or clear the AI results."
+      : state.pay==="diningOnly"
       ? "No off-campus locations are Dining Dollars only. Every location that accepts Dining Dollars also accepts Bama Cash, so those places are all under Both."
       : "No locations match these filters.";
     list.appendChild(d);
@@ -288,6 +317,84 @@ document.getElementById("paySeg").addEventListener("click",e=>{
 });
 document.getElementById("hideUnavail").addEventListener("change",e=>{state.hideUnavail=e.target.checked; render();});
 document.getElementById("search").addEventListener("input",e=>{state.q=e.target.value.trim().toLowerCase(); render();});
+// ---- AI advanced search (Google Gemini 2.5 Flash) ----
+// The API key is NEVER in this repo: each visitor pastes their own key once,
+// it is kept in this browser's localStorage, and the page calls Google's API
+// directly with it. A fresh clone works with no key or config files.
+const GEMINI_KEY_LS="crimsonGeminiKey";
+const aiKey=()=>localStorage.getItem(GEMINI_KEY_LS)||"";
+function refreshKeyLabel(){
+  document.getElementById("aiKeyToggle").textContent = aiKey() ? "🔑 Gemini key saved in this browser — change it" : "🔑 Set Gemini API key";
+}
+function addMsg(text, cls){
+  const d=document.createElement("div"); d.className="msg "+cls; d.textContent=text;
+  document.getElementById("aiChat").appendChild(d); return d;
+}
+function locationsContext(){
+  return LOCATIONS.map(p=>({id:p.id, name:p.name, category:CATEGORY_LABEL[p.category]||p.category, area:p.area||undefined, address:p.address, city:cityOf(p), diningDollars:p.acceptsDiningDollars, bamaCash:p.acceptsBamaCash, unavailable:p.unavailable||undefined, hours:p.hoursVerified?p.hours:undefined, note:p.note||undefined}));
+}
+function applyAiResults(ids){
+  const valid=new Set(LOCATIONS.map(p=>p.id));
+  state.aiIds=new Set((ids||[]).filter(id=>valid.has(id)));
+  document.getElementById("aiClear").style.display="";
+  render();
+  const shown=LOCATIONS.filter(p=>matches(p));
+  if(shown.length){
+    if(state.base==="blender") map.fitBounds(IMG_BOUNDS);
+    else map.fitBounds(L.latLngBounds(shown.map(p=>[p.displayLat,p.displayLng])), {padding:[45,45], maxZoom:16});
+  }
+}
+async function askAI(){
+  const q=document.getElementById("aiQuery").value.trim();
+  if(!q) return;
+  if(!aiKey()){
+    document.getElementById("aiKeyForm").style.display="";
+    addMsg("Add your Gemini API key first — it is stored only in this browser, never in the site's code. Get a free one at aistudio.google.com/apikey.","err");
+    return;
+  }
+  addMsg(q,"user");
+  const btn=document.getElementById("aiAsk"); btn.disabled=true; btn.textContent="Thinking…";
+  const thinking=addMsg("Looking through the locations…","ai");
+  try{
+    const system="You are the advanced search for Crimson Currency, a map of off-campus places near the University of Alabama in Tuscaloosa where students can pay with Bama Cash or Dining Dollars. Answer ONLY from the location list provided — never invent a place. A location with diningDollars:true accepts Dining Dollars (those places also accept Bama Cash and are tagged 'Both'); a location with diningDollars:false accepts Bama Cash only. Infer cuisine and food types from names and categories (for example, sushi from a Japanese restaurant's name). In 'answer', write a friendly reply that NAMES every matching location. In 'locationIds', return the id of every location that matches the question — all of them, not just examples. If nothing matches, say so in 'answer' and return an empty list. Mention currently unavailable locations only if asked about them, and flag them as unavailable in the answer.";
+    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-goog-api-key":aiKey()},
+      body:JSON.stringify({
+        systemInstruction:{parts:[{text:system}]},
+        contents:[{parts:[{text:"Locations (JSON):\n"+JSON.stringify(locationsContext())+"\n\nQuestion: "+q}]}],
+        generationConfig:{responseMimeType:"application/json", responseSchema:{type:"OBJECT", properties:{answer:{type:"STRING"}, locationIds:{type:"ARRAY", items:{type:"INTEGER"}}}, required:["answer","locationIds"]}}
+      })
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error((data.error&&data.error.message)||("HTTP "+res.status));
+    const out=JSON.parse(data.candidates[0].content.parts[0].text);
+    thinking.remove();
+    addMsg(out.answer,"ai");
+    applyAiResults(out.locationIds);
+  }catch(err){
+    thinking.remove();
+    addMsg("The AI search failed ("+err.message+"). Check the saved key, or use the regular search and filters below.","err");
+  }finally{
+    btn.disabled=false; btn.textContent="Ask";
+  }
+}
+document.getElementById("aiAsk").addEventListener("click",askAI);
+document.getElementById("aiQuery").addEventListener("keydown",e=>{ if(e.key==="Enter") askAI(); });
+document.getElementById("aiKeyToggle").addEventListener("click",()=>{
+  const f=document.getElementById("aiKeyForm");
+  f.style.display = f.style.display==="none" ? "" : "none";
+});
+document.getElementById("aiKeySave").addEventListener("click",()=>{
+  const v=document.getElementById("aiKeyInput").value.trim();
+  if(v){ localStorage.setItem(GEMINI_KEY_LS, v); document.getElementById("aiKeyInput").value=""; document.getElementById("aiKeyForm").style.display="none"; refreshKeyLabel(); addMsg("Key saved in this browser. Ask away.","ai"); }
+});
+document.getElementById("aiClear").addEventListener("click",()=>{
+  state.aiIds=null; document.getElementById("aiClear").style.display="none";
+  map.fitBounds(state.base==="blender"?IMG_BOUNDS:CORE_BOUNDS); render();
+});
+refreshKeyLabel();
+
 </script>
 </body>
 </html>
